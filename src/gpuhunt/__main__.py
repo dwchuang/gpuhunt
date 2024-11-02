@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Nov  2 12:42:53 2024
+
+@author: dwchuang_mbp2
+"""
+
 import argparse
 import logging
 import os
@@ -13,6 +21,7 @@ def main():
         choices=[
             "aws",
             "azure",
+            "crusoe",  # Added Crusoe
             "cudo",
             "datacrunch",
             "gcp",
@@ -40,6 +49,10 @@ def main():
         from gpuhunt.providers.azure import AzureProvider
 
         provider = AzureProvider(os.getenv("AZURE_SUBSCRIPTION_ID"))
+    elif args.provider == "crusoe":  # Added Crusoe provider handling
+        from gpuhunt.providers.crusoe import CrusoeProvider
+
+        provider = CrusoeProvider()
     elif args.provider == "cudo":
         from gpuhunt.providers.cudo import CudoProvider
 
