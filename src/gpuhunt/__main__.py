@@ -1,18 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Nov  2 12:42:53 2024
-
-@author: dwchuang_mbp2
-"""
-
 import argparse
 import logging
 import os
 import sys
-
 import gpuhunt._internal.storage as storage
-
 
 def main():
     parser = argparse.ArgumentParser(prog="python3 -m gpuhunt")
@@ -21,7 +11,7 @@ def main():
         choices=[
             "aws",
             "azure",
-            "crusoe",  # Added Crusoe
+            "crusoe",
             "cudo",
             "datacrunch",
             "gcp",
@@ -35,6 +25,7 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--no-filter", action="store_true")
     args = parser.parse_args()
+
     logging.basicConfig(
         level=logging.INFO,
         stream=sys.stdout,
@@ -43,37 +34,29 @@ def main():
 
     if args.provider == "aws":
         from gpuhunt.providers.aws import AWSProvider
-
         provider = AWSProvider(os.getenv("AWS_CACHE_PATH"))
     elif args.provider == "azure":
         from gpuhunt.providers.azure import AzureProvider
-
         provider = AzureProvider(os.getenv("AZURE_SUBSCRIPTION_ID"))
-    elif args.provider == "crusoe":  # Added Crusoe provider handling
-        from gpuhunt.providers.crusoe import CrusoeProvider
-
-        provider = CrusoeProvider()
+    elif args.provider == "crusoe":
+        from gpuhunt.providers.crusoe import CrusoeCloudProvider
+        provider = CrusoeCloudProvider()
     elif args.provider == "cudo":
         from gpuhunt.providers.cudo import CudoProvider
-
         provider = CudoProvider()
     elif args.provider == "datacrunch":
         from gpuhunt.providers.datacrunch import DataCrunchProvider
-
         provider = DataCrunchProvider(
             os.getenv("DATACRUNCH_CLIENT_ID"), os.getenv("DATACRUNCH_CLIENT_SECRET")
         )
     elif args.provider == "gcp":
         from gpuhunt.providers.gcp import GCPProvider
-
         provider = GCPProvider(os.getenv("GCP_PROJECT_ID"))
     elif args.provider == "lambdalabs":
         from gpuhunt.providers.lambdalabs import LambdaLabsProvider
-
         provider = LambdaLabsProvider(os.getenv("LAMBDALABS_TOKEN"))
     elif args.provider == "oci":
         from gpuhunt.providers.oci import OCICredentials, OCIProvider
-
         provider = OCIProvider(
             OCICredentials(
                 user=os.getenv("OCI_CLI_USER"),
@@ -85,15 +68,12 @@ def main():
         )
     elif args.provider == "runpod":
         from gpuhunt.providers.runpod import RunpodProvider
-
         provider = RunpodProvider()
     elif args.provider == "tensordock":
         from gpuhunt.providers.tensordock import TensorDockProvider
-
         provider = TensorDockProvider()
     elif args.provider == "vastai":
         from gpuhunt.providers.vastai import VastAIProvider
-
         provider = VastAIProvider()
     else:
         exit(f"Unknown provider {args.provider}")
@@ -103,7 +83,6 @@ def main():
     if not args.no_filter:
         offers = provider.filter(offers)
     storage.dump(offers, args.output)
-
 
 if __name__ == "__main__":
     main()
