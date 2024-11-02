@@ -19,7 +19,8 @@ keywords = ["gpu", "cloud", "pricing"]
 dynamic = ["version"]
 dependencies = [
     "requests",
-    "typing-extensions"
+    "typing-extensions",
+    "beautifulsoup4"  # Added for Crusoe web scraping
 ]
 
 [project.urls]
@@ -51,7 +52,11 @@ oci = [
 datacrunch = [
     "datacrunch"
 ]
-all = ["gpuhunt[aws,azure,datacrunch,gcp,nebius,oci]"]
+crusoe = [  # Added Crusoe optional dependencies
+    "beautifulsoup4>=4.9.0",
+    "requests>=2.25.0"
+]
+all = ["gpuhunt[aws,azure,crusoe,datacrunch,gcp,nebius,oci]"]  # Added crusoe to all
 dev = [
     "pre-commit",
     "pytest~=7.0",
