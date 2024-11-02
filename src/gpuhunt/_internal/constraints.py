@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Nov  2 12:22:05 2024
+
+@author: dwchuang_mbp2
+"""
+
 from typing import Optional, TypeVar, Union
 
 from gpuhunt._internal.models import (
@@ -147,10 +155,11 @@ KNOWN_NVIDIA_GPUS: list[NvidiaGPUInfo] = [
     NvidiaGPUInfo(name="A5000", memory=24, compute_capability=(8, 6)),
     NvidiaGPUInfo(name="A6000", memory=48, compute_capability=(8, 6)),
     NvidiaGPUInfo(name="H100", memory=80, compute_capability=(9, 0)),
+    NvidiaGPUInfo(name="H200", memory=80, compute_capability=(9, 0)),  # Added H200
     NvidiaGPUInfo(name="H100NVL", memory=94, compute_capability=(9, 0)),
     NvidiaGPUInfo(name="L4", memory=24, compute_capability=(8, 9)),
     NvidiaGPUInfo(name="L40", memory=48, compute_capability=(8, 9)),
-    NvidiaGPUInfo(name="L40S", memory=48, compute_capability=(8, 9)),
+    NvidiaGPUInfo(name="L40S", memory=80, compute_capability=(8, 9)),  # Updated L40S memory to 80GB
     NvidiaGPUInfo(name="P100", memory=16, compute_capability=(6, 0)),
     NvidiaGPUInfo(name="RTX3060", memory=8, compute_capability=(8, 6)),
     NvidiaGPUInfo(name="RTX3060", memory=12, compute_capability=(8, 6)),
@@ -175,7 +184,7 @@ KNOWN_AMD_GPUS: list[AMDGPUInfo] = [
     AMDGPUInfo(name="MI250", memory=128, architecture=AMDArchitecture.CDNA2),
     AMDGPUInfo(name="MI250X", memory=128, architecture=AMDArchitecture.CDNA2),
     AMDGPUInfo(name="MI300A", memory=128, architecture=AMDArchitecture.CDNA3),
-    AMDGPUInfo(name="MI300X", memory=192, architecture=AMDArchitecture.CDNA3),
+    AMDGPUInfo(name="MI300X", memory=192, architecture=AMDArchitecture.CDNA3),  # Added MI300X
     AMDGPUInfo(name="MI308X", memory=128, architecture=AMDArchitecture.CDNA3),
     AMDGPUInfo(name="MI325X", memory=288, architecture=AMDArchitecture.CDNA3),
 ]
