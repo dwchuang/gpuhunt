@@ -1,148 +1,136 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Nov  2 12:56:44 2024
+Created on Sat Nov  2 13:53:46 2024
 
 @author: dwchuang_mbp2
 """
 
 from pathlib import Path
-
 import pytest
-
+import csv
+from io import StringIO
 
 @pytest.fixture
 def data(catalog_dir: Path) -> str:
+    """Read the Crusoe catalog CSV file."""
     return (catalog_dir / "crusoe.csv").read_text()
 
-
 class TestCrusoeCatalog:
-    def test_location_presented(self, data: str):
-        """Test that the default location is present"""
-        assert ",us-central," in data  # Crusoe's primary location
-
-    def test_gpu_presented(self, data: str):
-        """Test that all GPU types are present"""
-        gpus = [
+    def test_gpus_presented(self, data: str):
+        """Test that all expected GPU models are present in the catalog."""
+        expected_gpus = [
             "H200",
             "H100",
-            "MI300X",
             "A100",
+            "MI300x",
             "L40S",
-            "A40",
+            "A40"
         ]
-        assert all(f",{i}," in data for i in gpus)
+        assert all(f",{gpu}," in data for gpu in expected_gpus)
 
-    def test_gpu_variants(self, data: str):
-        """Test specific GPU variants are present"""
-        variants = [
-            # A100 variants
-            "A100,80,",  # 80GB SXM
-            "A100,40,",  # 40GB PCIe
-            # H100 variants
-            "H100,80,",  # 80GB SXM
-            # H200 variants
-            "H200,80,",  # 80GB
-        ]
-        assert all(v in data for v in variants)
-
-    def test_pricing_tiers(self, data: str):
-        """Test that different pricing tiers appear for instances"""
-        # Check that we have both on-demand and reserved instances
-        assert "crusoe-h100" in data  # On-demand
-        assert "crusoe-h100-reserved-6month" in data  # 6-month reserved
-        assert "crusoe-h100-reserved-1year" in data  # 1-year reserved
-        assert "crusoe-h100-reserved-3year" in data  # 3-year reserved
-
-    def test_gpu_memory_correct(self, data: str):
-        """Test that GPU memory is correctly specified"""
-        memory_configs = [
-            ("H200", "80"),
-            ("H100", "80"),
-            ("MI300X", "192"),
-            ("A100", "80"),
-            ("A100", "40"),
-            ("L40S", "80"),
-            ("A40", "48"),
-        ]
-        for gpu, memory in memory_configs:
-            assert f",{gpu},{memory}," in data
-
-    def test_no_spots(self, data: str):
-        """Test that no spot instances are present (Crusoe doesn't offer spot)"""
-        assert ",True\n" not in data
-
-    def test_gpu_counts(self, data: str):
-        """Test that GPU counts are correct"""
-        # Crusoe offers single GPU instances
-        lines = data.split("\n")
-        for line in lines:
-            if line and not line.startswith("instance_name"):
-                parts = line.split(",")
-                if len(parts) > 5:  # Make sure line has enough fields
-                    gpu_count_index = 5  # Adjust based on your CSV structure
-                    assert parts[gpu_count_index] == "1"  # All instances have 1 GPU
-
-    def test_required_fields(self, data: str):
-        """Test that all required fields are present in the CSV"""
-        required_headers = [
-            "instance_name",
-            "location",
-            "price",
-            "cpu",
-            "memory",
-            "gpu_count",
-            "gpu_name",
-            "gpu_memory",
-            "spot"
-        ]
-        header_line = data.split("\n")[0]
-        for field in required_headers:
-            assert field in header_line
-
-    def test_valid_prices(self, data: str):
-        """Test that prices are valid numbers and in expected ranges"""
-        lines = data.split("\n")[1:]  # Skip header
-        for line in lines:
-            if line:
-                price = float(line.split(",")[2])  # Price column index
-                assert 0.5 <= price <= 5.0  # Crusoe's price range as of 2024
-
-    def test_instance_naming(self, data: str):
-        """Test that instance names follow the correct format"""
-        lines = data.split("\n")[1:]  # Skip header
-        for line in lines:
-            if line:
-                instance_name = line.split(",")[0]
-                assert instance_name.startswith("crusoe-")
-                # Check reserved instance naming
-                if "reserved" in instance_name:
-                    assert any(term in instance_name for term in [
-                        "reserved-6month",
-                        "reserved-1year",
-                        "reserved-3year"
-                    ])
-
-    def test_cpu_memory_ratios(self, data: str):
-        """Test that CPU and memory configurations are consistent"""
-        expected_ratios = {
-            "H200": (96, 2048),  # (CPU cores, Memory GB)
-            "H100": (96, 2048),
-            "MI300X": (96, 2048),
-            "A100": (48, 1024),
-            "L40S": (48, 512),
-            "A40": (24, 256),
+    def test_gpu_memory_configs(self, data: str):
+        """Test that expected GPU memory configurations are present."""
+        memory_configs = {
+            "H200": "80GB",
+            "H100": "80GB",
+            "A100": ["40GB", "80GB"],
+            "MI300x": "192GB",
+            "L40S": "80GB",
+            "A40": "48GB"
         }
         
-        lines = data.split("\n")[1:]  # Skip header
-        for line in lines:
-            if line:
-                parts = line.split(",")
-                gpu_name = parts[6]  # GPU name column
-                cpu_count = int(parts[3])  # CPU count column
-                memory_gb = float(parts[4])  # Memory column
-                
-                if gpu_name in expected_ratios:
-                    expected_cpu, expected_memory = expected_ratios[gpu_name]
-                    assert cpu_count == expected_cpu
-                    assert memory_gb == expected_memory
+        for gpu, memory in memory_configs.items():
+            if isinstance(memory, list):
+                assert any(f",{gpu},{mem}," in data for mem in memory)
+            else:
+                assert f",{gpu},{memory}," in data
+
+    def test_form_factors(self, data: str):
+        """Test that expected form factors are present."""
+        form_factors = [
+            "SXM",
+            "PCIe",
+            "OAM"
+        ]
+        assert all(f",{ff}," in data for ff in form_factors)
+
+    def test_pricing_tiers(self, data: str):
+        """Test that all pricing tiers are present."""
+        pricing_tiers = [
+            "On-Demand",
+            "6-month reserved",
+            "1-year reserved",
+            "3-year reserved"
+        ]
+        
+        csv_data = csv.DictReader(StringIO(data))
+        for row in csv_data:
+            assert all(tier in row for tier in pricing_tiers)
+
+    def test_h100_configurations(self, data: str):
+        """Test specific H100 configurations."""
+        h100_configs = [
+            # format: memory, form_factor
+            ("80GB", "SXM"),
+        ]
+        
+        for memory, form_factor in h100_configs:
+            assert f",H100,{memory},{form_factor}," in data
+
+    def test_valid_prices(self, data: str):
+        """Test that prices are either valid floats or 'Contact Us'."""
+        csv_data = csv.DictReader(StringIO(data))
+        price_columns = [
+            "On-Demand",
+            "6-month reserved",
+            "1-year reserved",
+            "3-year reserved"
+        ]
+        
+        for row in csv_data:
+            for col in price_columns:
+                price = row[col]
+                if price != "Contact Us":
+                    try:
+                        float(price)
+                    except ValueError:
+                        pytest.fail(f"Invalid price format: {price}")
+
+    def test_mi300x_contact_us(self, data: str):
+        """Test that MI300x shows 'Contact Us' for pricing."""
+        csv_data = csv.DictReader(StringIO(data))
+        for row in csv_data:
+            if "MI300x" in row["gpu_name"]:
+                assert all(row[tier] == "Contact Us" for tier in [
+                    "On-Demand",
+                    "6-month reserved",
+                    "1-year reserved",
+                    "3-year reserved"
+                ])
+
+    def test_memory_sizes(self, data: str):
+        """Test that memory sizes are valid integers followed by GB."""
+        csv_data = csv.DictReader(StringIO(data))
+        for row in csv_data:
+            memory = row["memory"]
+            assert memory.endswith("GB")
+            memory_size = memory[:-2]
+            assert memory_size.isdigit()
+            assert int(memory_size) > 0
+
+    def test_expected_csv_structure(self, data: str):
+        """Test that CSV has the expected column structure."""
+        expected_headers = {
+            "gpu_name",
+            "memory",
+            "form_factor",
+            "On-Demand",
+            "6-month reserved",
+            "1-year reserved",
+            "3-year reserved"
+        }
+        
+        csv_data = csv.reader(StringIO(data))
+        headers = set(next(csv_data))
+        assert headers == expected_headers
