@@ -60,6 +60,7 @@ print(*items, sep="\n")
 * Coreweave
 * Crusoe
 * DataCrunch
+* oracle
 * GCP
 * LambdaLabs
 * OCI
