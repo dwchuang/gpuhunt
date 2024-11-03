@@ -17,25 +17,29 @@ def default_catalog() -> Catalog:
         the latest catalog with all available providers loaded
     """
     catalog = Catalog()
+    catalog.load()
     
-    # Only load catalog.zip for offline providers
-    try:
-        catalog.load()
-    except AttributeError:
-        logger.debug("Catalog loading skipped for online-only providers")
-    
-    for module, provider in [
+    # Define providers to load - including Oracle, CoreWeave, and Crusoe
+    providers = [
+        ("gpuhunt.providers.oracle", "OracleCloudProvider"),
+        ("gpuhunt.providers.coreweave", "CoreWeaveProvider"),
         ("gpuhunt.providers.crusoe", "CrusoeCloudProvider"),
         ("gpuhunt.providers.tensordock", "TensorDockProvider"),
         ("gpuhunt.providers.vastai", "VastAIProvider"),
         ("gpuhunt.providers.cudo", "CudoProvider"),
-    ]:
+    ]
+    
+    # Try to load each provider
+    for module_path, provider_class in providers:
         try:
-            module = importlib.import_module(module)
-            provider = getattr(module, provider)()
+            module = importlib.import_module(module_path)
+            provider = getattr(module, provider_class)()
             catalog.add_provider(provider)
         except ImportError:
-            logger.warning("Failed to import provider %s", provider)
+            logger.warning(f"Failed to import provider {provider_class}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize provider {provider_class}: {e}")
+
     return catalog
 
 
