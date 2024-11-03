@@ -19,6 +19,7 @@ def default_catalog() -> Catalog:
     catalog = Catalog()
     catalog.load()
     for module, provider in [
+        ("gpuhunt.providers.crusoe", "CrusoeCloudProvider"),
         ("gpuhunt.providers.tensordock", "TensorDockProvider"),
         ("gpuhunt.providers.vastai", "VastAIProvider"),
         ("gpuhunt.providers.cudo", "CudoProvider"),
