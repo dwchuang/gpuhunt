@@ -16,6 +16,7 @@ def main():
             "cudo",
             "datacrunch",
             "gcp",
+            "hyperstack",
             "lambdalabs",
             "oci",
             "oracle",
@@ -57,6 +58,9 @@ def main():
     elif args.provider == "gcp":
         from gpuhunt.providers.gcp import GCPProvider
         provider = GCPProvider(os.getenv("GCP_PROJECT_ID"))
+    elif args.provider == "hyperstack":
+        from gpuhunt.providers.hyperstack import HyperstackProvider
+        provider = HyperstackProvider()
     elif args.provider == "lambdalabs":
         from gpuhunt.providers.lambdalabs import LambdaLabsProvider
         provider = LambdaLabsProvider(os.getenv("LAMBDALABS_TOKEN"))
