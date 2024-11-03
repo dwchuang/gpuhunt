@@ -19,12 +19,7 @@ logger = logging.getLogger(__name__)
 version_url = "https://dstack-gpu-pricing.s3.eu-west-1.amazonaws.com/v1/version"
 catalog_url = "https://dstack-gpu-pricing.s3.eu-west-1.amazonaws.com/v1/{version}/catalog.zip"
 OFFLINE_PROVIDERS = ["aws", "azure", "datacrunch", "gcp", "lambdalabs", "oci", "runpod"]
-ONLINE_PROVIDERS = ["cudo", "tensordock", "vastai"]
-
-# Add Crusoe's provider name constants
-PROVIDER_CRUSOE = "crusoe"
-ONLINE_PROVIDERS.append(PROVIDER_CRUSOE)
-
+ONLINE_PROVIDERS = ["cudo", "tensordock", "vastai", "crusoe"]
 RELOAD_INTERVAL = 15 * 60  # 15 minutes
 
 
@@ -40,6 +35,7 @@ class Catalog:
         self.providers: list[AbstractProvider] = []
         self.balance_resources = balance_resources
         self.auto_reload = auto_reload
+        self._online_only = False
 
     def query(
         self,
@@ -65,11 +61,43 @@ class Catalog:
         max_compute_capability: Optional[Union[str, tuple[int, int]]] = None,
         spot: Optional[bool] = None,
     ) -> list[CatalogItem]:
-        """Query the catalog for matching offers."""
-        if self.auto_reload and (
+        """
+        Query the catalog for matching offers
+
+        Args:
+            provider: name of the provider to filter by. If not specified, all providers will be used
+            min_cpu: minimum number of CPUs
+            max_cpu: maximum number of CPUs
+            min_memory: minimum amount of RAM in GB
+            max_memory: maximum amount of RAM in GB
+            min_gpu_count: minimum number of GPUs
+            max_gpu_count: maximum number of GPUs
+            gpu_name: name of the GPU to filter by. If not specified, all GPUs will be used
+            min_gpu_memory: minimum amount of GPU VRAM in GB for each GPU
+            max_gpu_memory: maximum amount of GPU VRAM in GB for each GPU
+            min_total_gpu_memory: minimum amount of GPU VRAM in GB for all GPUs combined
+            max_total_gpu_memory: maximum amount of GPU VRAM in GB for all GPUs combined
+            min_disk_size: minimum disk size in GB
+            max_disk_size: maximum disk size in GB
+            min_price: minimum price per hour in USD
+            max_price: maximum price per hour in USD
+            min_compute_capability: minimum compute capability of the GPU
+            max_compute_capability: maximum compute capability of the GPU
+            spot: if `False`, only ondemand offers will be returned. If `True`, only spot offers will be returned
+
+        Returns:
+            list of matching offers
+        """
+        # Check if we need to load or reload the catalog for offline providers
+        if not self._online_only and self.auto_reload and (
             self.loaded_at is None or time.monotonic() - self.loaded_at > RELOAD_INTERVAL
         ):
-            self.load()
+            try:
+                self.get_latest_version()
+                self.load()
+            except (AttributeError, urllib.error.URLError):
+                self._online_only = True
+                logger.debug("Running in online-only mode")
 
         query_filter = QueryFilter(
             provider=[provider] if isinstance(provider, str) else provider,
@@ -119,18 +147,90 @@ class Catalog:
                         )
                     )
 
-            for provider_name in OFFLINE_PROVIDERS:
-                if provider_name in map(str.lower, query_filter.provider):
-                    futures.append(
-                        executor.submit(
-                            self._get_offline_provider_items,
-                            provider_name,
-                            query_filter,
+            if not self._online_only:
+                for provider_name in OFFLINE_PROVIDERS:
+                    if provider_name in map(str.lower, query_filter.provider):
+                        futures.append(
+                            executor.submit(
+                                self._get_offline_provider_items,
+                                provider_name,
+                                query_filter,
+                            )
                         )
-                    )
 
             completed, _ = wait(futures)
             items = list(heapq.merge(*[f.result() for f in completed], key=lambda i: i.price))
         return items
 
-    # ... rest of the Catalog class implementation remains the same ...
+    def load(self, version: Optional[str] = None):
+        """
+        Fetch the catalog from the S3 bucket
+
+        Args:
+            version: specific version of the catalog to download. If not specified, the latest version will be used
+        """
+        if version is None:
+            version = self.get_latest_version()
+        logger.debug("Downloading catalog %s...", version)
+        with urllib.request.urlopen(catalog_url.format(version=version)) as f:
+            self.loaded_at = time.monotonic()
+            self.catalog = io.BytesIO(f.read())
+
+    @staticmethod
+    def get_latest_version() -> str:
+        """
+        Get the latest version of the catalog from the S3 bucket
+        """
+        with urllib.request.urlopen(version_url) as f:
+            return f.read().decode("utf-8").strip()
+
+    def add_provider(self, provider: AbstractProvider):
+        """
+        Add provider for querying offers
+
+        Args:
+            provider: provider to add
+        """
+        self.providers.append(provider)
+
+    def _get_offline_provider_items(
+        self, provider_name: str, query_filter: QueryFilter
+    ) -> list[CatalogItem]:
+        logger.debug("Loading items for offline provider %s", provider_name)
+
+        items = []
+
+        if self.catalog is None:
+            logger.warning("Catalog not loaded")
+            return items
+
+        with zipfile.ZipFile(self.catalog) as zip_file:
+            with zip_file.open(f"{provider_name}.csv", "r") as csv_file:
+                reader: Iterable[dict[str, str]] = csv.DictReader(
+                    io.TextIOWrapper(csv_file, "utf-8")
+                )
+                for row in reader:
+                    item = CatalogItem.from_dict(row, provider=provider_name)
+                    if constraints.matches(item, query_filter):
+                        items.append(item)
+        return items
+
+    def _get_online_provider_items(
+        self, provider_name: str, query_filter: QueryFilter
+    ) -> list[CatalogItem]:
+        logger.debug("Loading items for online provider %s", provider_name)
+        items = []
+        found = False
+        for provider in self.providers:
+            if provider.NAME != provider_name:
+                continue
+            found = True
+            for i in provider.get(
+                query_filter=query_filter, balance_resources=self.balance_resources
+            ):
+                item = CatalogItem(provider=provider_name, **dataclasses.asdict(i))
+                if constraints.matches(item, query_filter):
+                    items.append(item)
+        if not found:
+            raise ValueError(f"Provider is not loaded: {provider_name}")
+        return items

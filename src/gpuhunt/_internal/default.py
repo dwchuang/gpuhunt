@@ -17,7 +17,13 @@ def default_catalog() -> Catalog:
         the latest catalog with all available providers loaded
     """
     catalog = Catalog()
-    catalog.load()
+    
+    # Only load catalog.zip for offline providers
+    try:
+        catalog.load()
+    except AttributeError:
+        logger.debug("Catalog loading skipped for online-only providers")
+    
     for module, provider in [
         ("gpuhunt.providers.crusoe", "CrusoeCloudProvider"),
         ("gpuhunt.providers.tensordock", "TensorDockProvider"),
