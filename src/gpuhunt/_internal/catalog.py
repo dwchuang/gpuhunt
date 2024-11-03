@@ -19,9 +19,17 @@ logger = logging.getLogger(__name__)
 version_url = "https://dstack-gpu-pricing.s3.eu-west-1.amazonaws.com/v1/version"
 catalog_url = "https://dstack-gpu-pricing.s3.eu-west-1.amazonaws.com/v1/{version}/catalog.zip"
 
-# Add Oracle and CoreWeave to ONLINE_PROVIDERS since they are scraped in real-time
 OFFLINE_PROVIDERS = ["aws", "azure", "datacrunch", "gcp", "lambdalabs", "oci", "runpod"]
-ONLINE_PROVIDERS = ["cudo", "tensordock", "vastai", "oracle", "coreweave", "crusoe"]
+# Add hyperstack to ONLINE_PROVIDERS since it's also scraped in real-time
+ONLINE_PROVIDERS = [
+    "cudo", 
+    "tensordock", 
+    "vastai", 
+    "oracle", 
+    "coreweave", 
+    "crusoe",
+    "hyperstack"
+]
 RELOAD_INTERVAL = 15 * 60  # 15 minutes
 
 
@@ -113,7 +121,7 @@ class Catalog:
         with ThreadPoolExecutor(max_workers=8) as executor:
             futures = []
 
-            # Handle online providers including Oracle and CoreWeave
+            # Handle online providers including Hyperstack
             for provider_name in ONLINE_PROVIDERS:
                 if provider_name in map(str.lower, query_filter.provider):
                     futures.append(
@@ -162,11 +170,7 @@ class Catalog:
             return f.read().decode("utf-8").strip()
 
     def add_provider(self, provider: AbstractProvider):
-        """Add provider for querying offers.
-
-        Args:
-            provider: provider to add
-        """
+        """Add provider for querying offers."""
         self.providers.append(provider)
 
     def _get_offline_provider_items(
@@ -195,7 +199,7 @@ class Catalog:
     def _get_online_provider_items(
         self, provider_name: str, query_filter: QueryFilter
     ) -> list[CatalogItem]:
-        """Get items from online providers including Oracle and CoreWeave."""
+        """Get items from online providers including Hyperstack."""
         logger.debug("Loading items for online provider %s", provider_name)
         items = []
         found = False

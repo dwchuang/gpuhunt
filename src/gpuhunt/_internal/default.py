@@ -2,13 +2,10 @@ import functools
 import importlib
 import logging
 from typing import Callable, TypeVar
-
 from typing_extensions import Concatenate, ParamSpec
-
 from gpuhunt._internal.catalog import Catalog
 
 logger = logging.getLogger(__name__)
-
 
 @functools.lru_cache
 def default_catalog() -> Catalog:
@@ -19,11 +16,12 @@ def default_catalog() -> Catalog:
     catalog = Catalog()
     catalog.load()
     
-    # Define providers to load - including Oracle, CoreWeave, and Crusoe
+    # Define providers to load - including Oracle, CoreWeave, Crusoe, and Hyperstack
     providers = [
         ("gpuhunt.providers.oracle", "OracleCloudProvider"),
         ("gpuhunt.providers.coreweave", "CoreWeaveProvider"),
         ("gpuhunt.providers.crusoe", "CrusoeCloudProvider"),
+        ("gpuhunt.providers.hyperstack", "HyperstackProvider"),
         ("gpuhunt.providers.tensordock", "TensorDockProvider"),
         ("gpuhunt.providers.vastai", "VastAIProvider"),
         ("gpuhunt.providers.cudo", "CudoProvider"),
@@ -54,14 +52,11 @@ def with_signature(method: CatalogMethod) -> Callable[[Method], Method]:
     Returns:
         decorator to add the signature of the Catalog method to the decorated method
     """
-
     def decorator(func: Method) -> Method:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             return func(*args, **kwargs)
-
         return wrapper
-
     return decorator
 
 
