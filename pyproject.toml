@@ -34,6 +34,10 @@ azure = [
     "azure-mgmt-compute",
     "azure-identity"
 ]
+coreweave = [
+    "beautifulsoup4",
+    "requests"
+]
 crusoe = [
     "beautifulsoup4",
     "requests"
@@ -52,10 +56,16 @@ oci = [
     "oci",
     "pydantic>=1.10.10,<2.0.0",
 ]
+oracle = [
+    "beautifulsoup4",
+    "requests"
+]
 datacrunch = [
     "datacrunch"
 ]
-all = ["gpuhunt[aws,azure,crusoe,datacrunch,gcp,nebius,oci]"]
+all = [
+    "gpuhunt[aws,azure,coreweave,crusoe,datacrunch,gcp,nebius,oci,oracle]"
+]
 dev = [
     "pre-commit",
     "pytest~=7.0",
