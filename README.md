@@ -57,6 +57,8 @@ print(*items, sep="\n")
 * AWS
 * Azure
 * Cudo Compute
+* Coreweave
+* Crusoe
 * DataCrunch
 * GCP
 * LambdaLabs
