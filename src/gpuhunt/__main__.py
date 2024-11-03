@@ -11,12 +11,14 @@ def main():
         choices=[
             "aws",
             "azure",
+            "coreweave",
             "crusoe",
             "cudo",
             "datacrunch",
             "gcp",
             "lambdalabs",
             "oci",
+            "oracle",
             "runpod",
             "tensordock",
             "vastai",
@@ -38,6 +40,9 @@ def main():
     elif args.provider == "azure":
         from gpuhunt.providers.azure import AzureProvider
         provider = AzureProvider(os.getenv("AZURE_SUBSCRIPTION_ID"))
+    elif args.provider == "coreweave":
+        from gpuhunt.providers.coreweave import CoreWeaveProvider
+        provider = CoreWeaveProvider()
     elif args.provider == "crusoe":
         from gpuhunt.providers.crusoe import CrusoeCloudProvider
         provider = CrusoeCloudProvider()
@@ -66,6 +71,9 @@ def main():
                 region=os.getenv("OCI_CLI_REGION"),
             )
         )
+    elif args.provider == "oracle":
+        from gpuhunt.providers.oracle import OracleCloudProvider
+        provider = OracleCloudProvider()
     elif args.provider == "runpod":
         from gpuhunt.providers.runpod import RunpodProvider
         provider = RunpodProvider()
