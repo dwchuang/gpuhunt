@@ -46,7 +46,7 @@ List of all available filters:
 from gpuhunt import Catalog
 
 catalog = Catalog()
-catalog.load(version="20240508")
+catalog.load(version="20241101-xxxx") # Now the version format is no longer YYYYDDMM, it comes with suffixes -xxxx.
 items = catalog.query()
 
 print(*items, sep="\n")
